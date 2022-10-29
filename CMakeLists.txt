@@ -27,6 +27,8 @@ add_library(xmlsec-qt SHARED
   ${sources}
 )
 
+target_compile_definitions(xmlsec-qt PRIVATE XMLSECQT_LIBRARY)
+
 target_link_libraries(xmlsec-qt PRIVATE
   Qt${QT_VERSION_MAJOR}::Core
   Qt${QT_VERSION_MAJOR}::Xml
