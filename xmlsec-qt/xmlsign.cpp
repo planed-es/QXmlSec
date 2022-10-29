@@ -177,7 +177,18 @@ bool QXmlSign::sign(const QString& keyFile)
     return false;
   }
 
-  xmlDocDump(stdout, doc);
-
+  xmlChar* out;
+  int size;
+  xmlDocDumpMemory(doc, &out, &size);
+  try
+  {
+    _document.setContent(QByteArray(reinterpret_cast<char*>(out), size));
+  }
+  catch (...)
+  {
+    xmlFree(out);
+    throw ;
+  }
+  xmlFree(out);
   return true;
 }
