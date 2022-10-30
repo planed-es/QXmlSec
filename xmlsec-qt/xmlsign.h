@@ -2,8 +2,10 @@
 # define QXMLSIGN_H
 
 # include "xmlsec-qt_global.h"
+# include "xmlsigninfo.h"
+# include "xmlkeyinfo.h"
+# include "certificate.h"
 # include <QObject>
-# include <QDomDocument>
 
 class XMLSECQT_EXPORT QXmlSign : public QObject
 {
@@ -11,19 +13,23 @@ public:
   explicit QXmlSign(QObject* parent = nullptr);
   virtual ~QXmlSign() {}
 
-  QXmlSign& useDocument(const QDomDocument& doc) { _document = doc; return *this; }
-  QXmlSign& useNamespace(const QString& ns) { _nspace = ns; return *this; }
+  QXmlSign& useDocument(const QDomDocument& doc) { context.document = doc; return *this; }
+  QXmlSign& useNamespace(const QString& ns) { context.nspace = ns; return *this; }
+  QXmlSign& useSignInfo(const QXmlSignInfo& value) { signInfo = value; return *this; }
+  QXmlSign& useKeyInfo(const QXmlSignKeyInfo& value) { keyInfo = value; return *this; }
+  QXmlSign& withSignatureId(const QString& id) { context.signatureId = id; return *this; }
+  QXmlSign& withObject(QDomElement el) { object = el; return *this; }
 
-  QString toString() const { return _document.toString(1); }
-  const QDomDocument& document() const { return _document; }
-  bool sign(const QString& keyFile);
-  bool sign(const QString& xmlFile, const QString& keyFile);
+  QString toString() const { return output.length() == 0 ? context.document.toString(1) : output; }
+  const QDomDocument& document() const { return context.document; }
+  bool sign(const QXmlSecCertificate&);
+  bool sign(const QString& xmlFile, const QXmlSecCertificate&);
+
+  QXmlSignContext signatureContext() { return context; }
 
 protected:
   virtual void prepareDocument();
 
-  QString     createTagName(const QString& tagName) const;
-  QDomElement createElement(const QString& tagName);
   void        setXmlnsAttribute(QDomElement&, const QString& xmlns);
   QDomElement makeSignedInfo();
   QDomElement makeSignedInfoReference(const QStringList& transforms);
@@ -31,8 +37,11 @@ protected:
   QDomElement makeXPathTransform(const QString& algorithm);
   QDomElement makeKeyInfo();
 
-  QDomDocument _document;
-  QString      _nspace;
+  QXmlSignContext context;
+  QXmlSignInfo    signInfo;
+  QXmlSignKeyInfo keyInfo;
+  QString         output;
+  QDomElement     object;
 };
 
 #endif

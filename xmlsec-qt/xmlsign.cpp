@@ -6,134 +6,75 @@
 #include <QDebug>
 #include <iostream>
 
+#include <xmlsec/xmlsec.h>
+#include <xmlsec/xmltree.h>
+#include <xmlsec/xmldsig.h>
+#include <xmlsec/templates.h>
+#include <xmlsec/crypto.h>
+
 QXmlSign::QXmlSign(QObject* parent) : QObject(parent)
 {
-}
-
-QDomElement QXmlSign::makeTransform(const QString& algorithm)
-{
-  QDomElement element = createElement("Transform");
-  element.setAttribute("Algorithm", algorithm);
-  return element;
-}
-
-QDomElement QXmlSign::makeXPathTransform(const QString& algorithm)
-{
-  QDomElement transform = makeTransform(algorithm);
-  QDomElement xpathEl = createElement("XPath");
-
-  xpathEl.setAttribute("xmlns", "http://www.w3.org/2000/09/xmldsig#");
-  xpathEl.appendChild(_document.createTextNode("not(ancestor-or-self::" + createTagName("Signature") + ')'));
-  transform.appendChild(xpathEl);
-  return transform;
-}
-
-QDomElement QXmlSign::makeSignedInfoReference(const QStringList& transforms)
-{
-  QDomElement reference    = createElement("Reference");
-  QDomElement digestMethod = createElement("DigestMethod");
-  QDomElement digestValue  = createElement("DigestValue");
-  QDomElement transformEl  = createElement("Transforms");
-
-  digestMethod.setAttribute("Algorithm", "http://www.w3.org/2001/04/xmlenc#sha512");
-  for (const QString& transform : transforms)
-  {
-    if (transform == "http://www.w3.org/TR/1999/REC-xpath-19991116")
-      transformEl.appendChild(makeXPathTransform(transform));
-    else
-      transformEl.appendChild(makeTransform(transform));
-  }
-  reference.appendChild(transformEl);
-  reference.appendChild(digestMethod);
-  reference.appendChild(digestValue);
-  return reference;
-}
-
-QDomElement QXmlSign::makeSignedInfo()
-{
-  QDomElement signedInfo             = createElement("SignedInfo");
-  QDomElement canonicalizationMethod = createElement("CanonicalizationMethod");
-  QDomElement signatureMethod        = createElement("SignatureMethod");
-
-  canonicalizationMethod.setAttribute("Algorithm", "http://www.w3.org/TR/2001/REC-xml-c14n-20010315");
-  signatureMethod.setAttribute       ("Algorithm", "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256");
-  signedInfo.appendChild(canonicalizationMethod);
-  signedInfo.appendChild(signatureMethod);
-  signedInfo.appendChild(makeSignedInfoReference({
-    //"http://www.w3.org/TR/2001/REC-xml-c14n-20010315",
-    "http://www.w3.org/2000/09/xmldsig#enveloped-signature",
-    "http://www.w3.org/TR/1999/REC-xpath-19991116"
-  }));
-  return signedInfo;
-}
-
-QDomElement QXmlSign::makeKeyInfo()
-{
-  QDomElement keyInfo = createElement("KeyInfo");
-  QDomElement keyName = createElement("KeyName");
-
-  keyInfo.appendChild(keyName);
-  return keyInfo;
-}
-
-QString QXmlSign::createTagName(const QString& tagName) const
-{
-  if (_nspace.length() > 0)
-    return _nspace + ':' + tagName;
-  return tagName;
-}
-
-QDomElement QXmlSign::createElement(const QString& tagName)
-{
-  return _document.createElement(createTagName(tagName));
 }
 
 void QXmlSign::setXmlnsAttribute(QDomElement& element, const QString& xmlns)
 {
   QString attributeName("xmlns");
 
-  if (_nspace.length() > 0)
-    attributeName += ':' + _nspace;
+  if (context.nspace.length() > 0)
+    attributeName += ':' + context.nspace;
   element.setAttribute(attributeName, xmlns);
 }
 
 void QXmlSign::prepareDocument()
 {
-  QDomElement signature  = createElement("Signature");
-  QDomElement signedInfo = makeSignedInfo();
-  QDomElement signatureValue = createElement("SignatureValue");
+  QDomElement signature  = context.createElement("Signature");
+  QDomElement signedInfo = signInfo.generate(context);
+  QDomElement signatureValue = context.createElement("SignatureValue");
 
   setXmlnsAttribute(signature, "http://www.w3.org/2000/09/xmldsig#");
+  if (context.signatureId.length() > 0)
+    signature.setAttribute("Id", context.signatureId);
   signature.appendChild(signedInfo);
   signature.appendChild(signatureValue);
-  signature.appendChild(makeKeyInfo());
-  _document.documentElement().appendChild(signature);
+  signature.appendChild(keyInfo.generate(context));
+  if (!object.isNull())
+  {
+    QDomElement objectEl = context.createElement("Object");
+    objectEl.appendChild(object);
+    signature.appendChild(objectEl);
+  }
+  context.document.documentElement().appendChild(signature);
 }
 
-bool QXmlSign::sign(const QString& xmlFile, const QString& keyFile)
+bool QXmlSign::sign(const QString& xmlFile, const QXmlSecCertificate& certificate)
 {
   QFile file(xmlFile);
 
   if (file.open(QIODevice::ReadOnly))
   {
     qDebug() << "QXmlSign: signing file" << xmlFile;
-    _document.setContent(&file);
-    return sign(keyFile);
+    context.document.setContent(&file);
+    return sign(certificate);
   }
   else
     qDebug() << "QXmlSign: cannot open file" << xmlFile;
   return false;
 }
 
-bool QXmlSign::sign(const QString& keyFile)
+bool QXmlSign::sign(const QXmlSecCertificate& certificate)
 {
   xmlDocPtr        doc  = NULL;
   xmlNodePtr       node = NULL;
   xmlNodePtr       root = NULL;
   xmlSecDSigCtxPtr dsigCtx = NULL;
+  QByteArray  keyFile = certificate.filepath().toUtf8();
+  QByteArray  keyPassword = certificate.password().toUtf8();
+  const char* keyPasswordPtr = keyPassword.length() > 0 ? keyPassword.constData() : NULL;
+  QByteArray  keyName = certificate.name().toUtf8();
 
   prepareDocument();
-  QByteArray source = toString().toUtf8();
+  QByteArray line1 = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n";
+  QByteArray source = line1 + toString().toUtf8();
   std::cout << "PRE DOCUMENT" << std::endl << source.toStdString() << std::endl << std::endl;
   doc = xmlParseMemory(source.constData(), source.length());
 
@@ -158,17 +99,20 @@ bool QXmlSign::sign(const QString& keyFile)
     return false;
   }
 
-  dsigCtx->signKey = xmlSecCryptoAppKeyLoad(keyFile.toStdString().c_str(), xmlSecKeyDataFormatPem, NULL, NULL, NULL);
+  dsigCtx->signKey = xmlSecCryptoAppKeyLoad(keyFile.constData(), certificate.xmlsecFormat(), keyPasswordPtr, NULL, NULL);
   if (dsigCtx->signKey == NULL)
   {
     qDebug() << "QXmlSign: failed to load private pem key from" << keyFile;
     return false;
   }
 
-  if (xmlSecKeySetName(dsigCtx->signKey, reinterpret_cast<const unsigned char*>(keyFile.toUtf8().constData())) < 0)
+  if (keyName.length() > 0)
   {
-    qDebug() << "QXmlSign: failed to set key name for key from" << keyFile;
-    return false;
+    if (xmlSecKeySetName(dsigCtx->signKey, reinterpret_cast<const unsigned char*>(keyName.constData())) < 0)
+    {
+      qDebug() << "QXmlSign: failed to set key name for key from" << keyFile;
+      return false;
+    }
   }
 
   if (xmlSecDSigCtxSign(dsigCtx, node) < 0)
@@ -182,7 +126,8 @@ bool QXmlSign::sign(const QString& keyFile)
   xmlDocDumpMemory(doc, &out, &size);
   try
   {
-    _document.setContent(QByteArray(reinterpret_cast<char*>(out), size));
+    output = QString::fromUtf8(QByteArray(reinterpret_cast<char*>(out), size));
+    context.document.setContent(output);
   }
   catch (...)
   {
@@ -190,5 +135,7 @@ bool QXmlSign::sign(const QString& keyFile)
     throw ;
   }
   xmlFree(out);
+
+  std::cout << "POST DOCUMENT" << std::endl << context.document.toString(2).toStdString() << std::endl;
   return true;
 }
