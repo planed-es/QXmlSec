@@ -20,7 +20,8 @@ public:
   QXmlSign& withSignatureId(const QString& id) { context.signatureId = id; return *this; }
   QXmlSign& withObject(QDomElement el) { object = el; return *this; }
 
-  QString toString() const { return output.length() == 0 ? context.document.toString(1) : output; }
+  QString toString() const { return output.length() == 0 ? context.document.toString(-1) : output; }
+  QString toString(unsigned int indent) const { return context.document.toString(indent); }
   const QDomDocument& document() const { return context.document; }
   bool sign(const QXmlSecCertificate&);
   bool sign(const QString& xmlFile, const QXmlSecCertificate&);

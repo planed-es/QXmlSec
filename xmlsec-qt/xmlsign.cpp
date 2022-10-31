@@ -72,6 +72,7 @@ bool QXmlSign::sign(const QXmlSecCertificate& certificate)
   const char* keyPasswordPtr = keyPassword.length() > 0 ? keyPassword.constData() : NULL;
   QByteArray  keyName = certificate.name().toUtf8();
 
+  output = "";
   prepareDocument();
   QByteArray line1 = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n";
   QByteArray source = line1 + toString().toUtf8();
