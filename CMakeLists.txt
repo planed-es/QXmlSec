@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(xmlsec-qt LANGUAGES CXX)
+project(xmlsec-qt
+  LANGUAGES CXX
+  VERSION 1.0.0
+  DESCRIPTION "XML digital signatures for Qt")
 
 option(BUILD_TESTS "builds tests" ON)
 
@@ -40,6 +43,9 @@ if (BUILD_TESTS)
 #  add_subdirectory(tests)
 endif()
 
+configure_file(xmlsec-qt.pc.in xmlsec-qt.pc @ONLY)
+
 install(FILES ${headers} DESTINATION include/xmlsec-qt)
 install(FILES ${xades_headers} DESTINATION include/xmlsec-qt/xades)
 install(TARGETS xmlsec-qt LIBRARY DESTINATION lib)
+install(FILES ${CMAKE_BINARY_DIR}/xmlsec-qt.pc DESTINATION lib/pkgconfig)
