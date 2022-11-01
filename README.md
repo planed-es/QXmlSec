@@ -9,6 +9,8 @@ by leveraing Qt's [QDomDocument](https://doc.qt.io/qt-6/qdomdocument.html) and t
 
 # Usage
 
+## Signing a document
+
 ### xmldsig
 
 ```
@@ -103,3 +105,31 @@ The previous example would generate the following signature, envelopped within `
 ### XAdES
 
 TODO
+
+
+## Verifying the signature on a document
+
+```
+#include <xmlsec-qt/xmlverify.h>
+#include <QFile>
+
+int main()
+{
+  QFile sslKeyFile("./ssl.key");
+  QFile signedDocument("./document.xml");
+
+  if (sslKeyFile.open(QIODevice::ReadOnly) &&
+      signedDocument.open(QIODevice::ReadOnly))
+  {
+    QString password("password");
+    QSslKey sslKey(sslKeyOpen, QSsl::Rsa, QSsl::Pem, QSsl::PublicKey, password);
+    bool valid;
+
+    valid = QXmlVerify(sslKey)
+      .usePassphrase(password)
+      .verify(signedDocument.readAll());
+    return valid ? 0 : -1;
+  }
+  return -1;
+}
+```
