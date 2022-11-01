@@ -135,7 +135,7 @@ int main()
       signedDocument.open(QIODevice::ReadOnly))
   {
     QString password("password");
-    QSslKey sslKey(sslKeyOpen, QSsl::Rsa, QSsl::Pem, QSsl::PublicKey, password);
+    QSslKey sslKey(sslKeyFile, QSsl::Rsa, QSsl::Pem, QSsl::PublicKey, password);
     bool valid;
 
     valid = QXmlVerify(sslKey)
