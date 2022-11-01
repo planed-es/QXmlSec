@@ -6,6 +6,7 @@
 #include <QDebug>
 #include <iostream>
 #include "xmldocptr.h"
+#include "xmlseckey.h"
 
 QXmlSign::QXmlSign(QObject* parent) : QObject(parent)
 {
@@ -28,7 +29,14 @@ void QXmlSign::prepareDocument()
   context.document.documentElement().appendChild(signature);
 }
 
-bool QXmlSign::sign(const QString& xmlFile, const QXmlSecCertificate& certificate)
+QXmlSign& QXmlSign::useSslKey(const QSslKey& val, const QByteArray& passphrase)
+{
+  sslKey = val;
+  sslKeyPassphrase = passphrase;
+  return *this;
+}
+
+bool QXmlSign::sign(const QString& xmlFile)
 {
   QFile file(xmlFile);
 
@@ -36,23 +44,26 @@ bool QXmlSign::sign(const QString& xmlFile, const QXmlSecCertificate& certificat
   {
     qDebug() << "QXmlSign: signing file" << xmlFile;
     context.document.setContent(&file);
-    return sign(certificate);
+    return sign();
   }
   else
     qDebug() << "QXmlSign: cannot open file" << xmlFile;
   return false;
 }
 
-bool QXmlSign::sign(const QXmlSecCertificate& certificate)
+bool QXmlSign::sign()
 {
   QXmlDocPtr       doc;
   xmlNodePtr       node = NULL;
   xmlNodePtr       root = NULL;
   xmlSecDSigCtxPtr dsigCtx = NULL;
-  QByteArray  keyFile = certificate.filepath().toUtf8();
-  QByteArray  keyPassword = certificate.password().toUtf8();
-  const char* keyPasswordPtr = keyPassword.length() > 0 ? keyPassword.constData() : NULL;
-  QByteArray  keyName = certificate.name().toUtf8();
+  QString keyName;
+
+  if (sslKey.isNull())
+  {
+    qDebug() << "QXmlSign: needs a QSslKey, but none was provided.";
+    return false;
+  }
 
   output.clear();
   prepareDocument();
@@ -82,20 +93,30 @@ bool QXmlSign::sign(const QXmlSecCertificate& certificate)
     return false;
   }
 
-  dsigCtx->signKey = xmlSecCryptoAppKeyLoad(keyFile.constData(), certificate.xmlsecFormat(), keyPasswordPtr, NULL, NULL);
+  switch (sslCertificateType)
+  {
+    case XmlsecCertificate:
+      keyName = sslCertificate.xmlsec.name();
+      dsigCtx->signKey = dsigCtx->signKey = xmlSecCryptoAppKeyLoad(sslCertificate.xmlsec.filepath().toUtf8().constData(), sslCertificate.xmlsec.xmlsecFormat(), sslKeyPassphrase.constData(), NULL, NULL);
+      break ;
+    case QtCertificate:
+      keyName = sslCertificate.qt.subjectDisplayName();
+    case NoCertificate:
+      dsigCtx->signKey = qSslKeyToXmlSecKey(sslKey, sslKeyPassphrase);
+      if (context.document.elementsByTagNameNS(context.nspace, "X509Data").size() > 0)
+        qDebug() << "QXmlSign: X509Data type is not compatible with QSslCertificate. Use QXmlsecCertificate instead.";
+      break ;
+  }
   if (dsigCtx->signKey == NULL)
   {
-    qDebug() << "QXmlSign: failed to load private pem key from" << keyFile;
+    qDebug() << "QXmlSign: failed to load private key from" << sslKey;
     return false;
   }
 
   if (keyName.length() > 0)
   {
     if (xmlSecKeySetName(dsigCtx->signKey, reinterpret_cast<const unsigned char*>(keyName.constData())) < 0)
-    {
-      qDebug() << "QXmlSign: failed to set key name for key from" << keyFile;
-      return false;
-    }
+      qDebug() << "QXmlSign: failed to set key name";
   }
 
   if (xmlSecDSigCtxSign(dsigCtx, node) < 0)

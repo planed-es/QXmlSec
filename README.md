@@ -30,6 +30,7 @@ int main()
 
   signer.withSignatureId("Signature-a53a6ab2")
         .useNamespace("ds")
+        .useCertificate(certificateData)
         .useDocument(targetDocument);
 
   keyInfoId = signer.signatureContext().tagId("KeyInfo");
@@ -53,7 +54,7 @@ int main()
     )
   );
 
-  if (signer.sign(certificateData))
+  if (signer.sign())
   {
     std::cerr << "Successfully signed XML document" << std::endl;
     std::cout << signer.toString().toStdString() << std::endl;
@@ -101,6 +102,18 @@ The previous example would generate the following signature, envelopped within `
     </ds:KeyInfo>
 </ds:Signature>
 ```
+
+You may also provide a `QSslKey` instead of `QXmlsecCertificate`:
+
+```
+QSslKey sslKey;
+
+signer.useSslKey(sslKey, "password");
+```
+
+Note that while this allows you better integration with the rest of your Qt program,
+some xmlsigd fields might not work when using this method. It is safer to use
+the `QXmlsecCertificate` object.
 
 ### XAdES
 
