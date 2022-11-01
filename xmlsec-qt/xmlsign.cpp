@@ -5,12 +5,7 @@
 #include <QFile>
 #include <QDebug>
 #include <iostream>
-
-#include <xmlsec/xmlsec.h>
-#include <xmlsec/xmltree.h>
-#include <xmlsec/xmldsig.h>
-#include <xmlsec/templates.h>
-#include <xmlsec/crypto.h>
+#include "xmldocptr.h"
 
 QXmlSign::QXmlSign(QObject* parent) : QObject(parent)
 {
@@ -50,7 +45,7 @@ bool QXmlSign::sign(const QString& xmlFile, const QXmlSecCertificate& certificat
 
 bool QXmlSign::sign(const QXmlSecCertificate& certificate)
 {
-  xmlDocPtr        doc  = NULL;
+  QXmlDocPtr       doc;
   xmlNodePtr       node = NULL;
   xmlNodePtr       root = NULL;
   xmlSecDSigCtxPtr dsigCtx = NULL;
@@ -59,14 +54,14 @@ bool QXmlSign::sign(const QXmlSecCertificate& certificate)
   const char* keyPasswordPtr = keyPassword.length() > 0 ? keyPassword.constData() : NULL;
   QByteArray  keyName = certificate.name().toUtf8();
 
-  output = "";
+  output.clear();
   prepareDocument();
   QByteArray line1 = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n";
   QByteArray source = line1 + toString().toUtf8();
   std::cout << "PRE DOCUMENT" << std::endl << source.toStdString() << std::endl << std::endl;
-  doc = xmlParseMemory(source.constData(), source.length());
+  doc.load(source);
 
-  root = doc != NULL ? xmlDocGetRootElement(doc) : NULL;
+  root = !doc.isNull() ? xmlDocGetRootElement(*doc) : NULL;
   if (root == NULL)
   {
     qDebug() << "QXmlSign: unable to parse file";
@@ -109,20 +104,8 @@ bool QXmlSign::sign(const QXmlSecCertificate& certificate)
     return false;
   }
 
-  xmlChar* out;
-  int size;
-  xmlDocDumpMemory(doc, &out, &size);
-  try
-  {
-    output = QString::fromUtf8(QByteArray(reinterpret_cast<char*>(out), size));
-    context.document.setContent(output);
-  }
-  catch (...)
-  {
-    xmlFree(out);
-    throw ;
-  }
-  xmlFree(out);
+  output = doc.toString();
+  context.document.setContent(output);
 
   std::cout << "POST DOCUMENT" << std::endl << context.document.toString(2).toStdString() << std::endl;
   return true;
