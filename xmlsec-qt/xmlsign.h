@@ -18,7 +18,7 @@ public:
   QXmlSign& useSignInfo(const QXmlSignInfo& value) { signInfo = value; return *this; }
   QXmlSign& useKeyInfo(const QXmlSignKeyInfo& value) { keyInfo = value; return *this; }
   QXmlSign& withSignatureId(const QString& id) { context.signatureId = id; return *this; }
-  QXmlSign& withObject(QDomElement el) { object = el; return *this; }
+  QXmlSign& addObject(QDomElement el) { objects << el; return *this; }
 
   QString toString() const { return output.length() == 0 ? context.document.toString(-1) : output; }
   QString toString(unsigned int indent) const { return context.document.toString(indent); }
@@ -31,18 +31,17 @@ public:
 protected:
   virtual void prepareDocument();
 
-  void        setXmlnsAttribute(QDomElement&, const QString& xmlns);
   QDomElement makeSignedInfo();
   QDomElement makeSignedInfoReference(const QStringList& transforms);
   QDomElement makeTransform(const QString& algorithm);
   QDomElement makeXPathTransform(const QString& algorithm);
   QDomElement makeKeyInfo();
 
-  QXmlSignContext context;
-  QXmlSignInfo    signInfo;
-  QXmlSignKeyInfo keyInfo;
-  QString         output;
-  QDomElement     object;
+  QXmlSignContext    context;
+  QXmlSignInfo       signInfo;
+  QXmlSignKeyInfo    keyInfo;
+  QString            output;
+  QList<QDomElement> objects;
 };
 
 #endif

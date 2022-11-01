@@ -61,7 +61,7 @@ QDomElement QXmlSignReference::makeXPathTransform(QXmlSignContext& context, cons
   QString     selector("not(ancestor-or-self::" + context.createTagName("Signature") + ')');
 
   xpathEl.setAttribute("xmlns", "http://www.w3.org/2000/09/xmldsig#");
-  xpathEl.appendChild(context.document.createTextNode(selector));
+  xpathEl.appendChild(context.createTextNode(selector));
   transform.appendChild(xpathEl);
   return transform;
 }

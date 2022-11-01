@@ -16,33 +16,20 @@ QXmlSign::QXmlSign(QObject* parent) : QObject(parent)
 {
 }
 
-void QXmlSign::setXmlnsAttribute(QDomElement& element, const QString& xmlns)
-{
-  QString attributeName("xmlns");
-
-  if (context.nspace.length() > 0)
-    attributeName += ':' + context.nspace;
-  element.setAttribute(attributeName, xmlns);
-}
-
 void QXmlSign::prepareDocument()
 {
   QDomElement signature  = context.createElement("Signature");
   QDomElement signedInfo = signInfo.generate(context);
   QDomElement signatureValue = context.createElement("SignatureValue");
 
-  setXmlnsAttribute(signature, "http://www.w3.org/2000/09/xmldsig#");
+  context.setXmlnsAttribute(signature);
   if (context.signatureId.length() > 0)
     signature.setAttribute("Id", context.signatureId);
   signature.appendChild(signedInfo);
   signature.appendChild(signatureValue);
   signature.appendChild(keyInfo.generate(context));
-  if (!object.isNull())
-  {
-    QDomElement objectEl = context.createElement("Object");
-    objectEl.appendChild(object);
-    signature.appendChild(objectEl);
-  }
+  for (QDomElement object : objects)
+    signature.appendChild(object);
   context.document.documentElement().appendChild(signature);
 }
 
