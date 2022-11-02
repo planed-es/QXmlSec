@@ -59,9 +59,9 @@ bool QXmlSign::sign()
   xmlSecDSigCtxPtr dsigCtx = NULL;
   QString keyName;
 
-  if (sslKey.isNull())
+  if (sslKey.isNull() && sslCertificateType != XmlsecCertificate)
   {
-    qDebug() << "QXmlSign: needs a QSslKey, but none was provided.";
+    qDebug() << "QXmlSign: needs a QSslKey or a QXmlsecCertificate, but you provided neither.";
     return false;
   }
 
@@ -69,7 +69,6 @@ bool QXmlSign::sign()
   prepareDocument();
   QByteArray line1 = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n";
   QByteArray source = line1 + toString().toUtf8();
-  std::cout << "PRE DOCUMENT" << std::endl << source.toStdString() << std::endl << std::endl;
   doc.load(source);
 
   root = !doc.isNull() ? xmlDocGetRootElement(*doc) : NULL;
@@ -128,6 +127,5 @@ bool QXmlSign::sign()
   output = doc.toString();
   context.document.setContent(output);
 
-  std::cout << "POST DOCUMENT" << std::endl << context.document.toString(2).toStdString() << std::endl;
   return true;
 }
