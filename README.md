@@ -22,6 +22,7 @@ int main()
   QDomDocument targetDocument;
   QXmlSecCertificate certificateData;
   QXmlSign signer;
+  QXmlSec xmlsec;
   QString keyInfoId;
 
   certificateData.setFormat(QXmlSecCertificate::Pkcs12);
@@ -123,11 +124,13 @@ TODO
 ## Verifying the signature on a document
 
 ```
+#include <xmlsec-qt/xmlsec.h>
 #include <xmlsec-qt/xmlverify.h>
 #include <QFile>
 
 int main()
 {
+  QXmlSec xmlsec; // initializes and finalizes the global state for xmlsec
   QFile sslKeyFile("./ssl.key");
   QFile signedDocument("./document.xml");
 
