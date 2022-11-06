@@ -1,4 +1,6 @@
 #include "signaturepolicyidentifier.h"
+#include <QFile>
+#include <QDebug>
 
 QDomElement QXadesSignaturePolicyIdentifier::generate(QXadesContext& context) const
 {
@@ -7,6 +9,8 @@ QDomElement QXadesSignaturePolicyIdentifier::generate(QXadesContext& context) co
 
   policyId.appendChild(generateIdentifier(context));
   root.appendChild(policyId);
+  if (digestValue.length() > 0)
+    policyId.appendChild(generateHash(context));
   if (qualifiers.size() > 0)
     policyId.appendChild(generateQualifiers(context));
   return root;
@@ -50,4 +54,21 @@ QDomElement QXadesSignaturePolicyIdentifier::generateQualifiers(QXadesContext& c
   for (const auto& qualifier : qualifiers)
     root.appendChild(qualifier.generate(context));
   return root;
+}
+
+QXadesSignaturePolicyIdentifier& QXadesSignaturePolicyIdentifier::useDigestFile(const QString& filepath)
+{
+  QFile file(filepath);
+
+  if (!file.open(QIODevice::ReadOnly))
+    qDebug() << "QXadesSignaturePolicyIdentifier: could not open file" << filepath;
+  return useDigestFile(reinterpret_cast<QIODevice*>(&file));
+}
+
+QXadesSignaturePolicyIdentifier& QXadesSignaturePolicyIdentifier::useDigestFile(QIODevice* device)
+{
+  QCryptographicHash hasher(digestAlgorithm);
+
+  hasher.addData(device);
+  return useDigestValue(hasher.result().toBase64());
 }

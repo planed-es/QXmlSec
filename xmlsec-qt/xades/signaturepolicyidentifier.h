@@ -4,12 +4,16 @@
 # include "context.h"
 # include "signaturepolicyqualifier.h"
 
+class QIODevice;
+
 class XMLSECQT_EXPORT QXadesSignaturePolicyIdentifier
 {
 public:
   QXadesSignaturePolicyIdentifier& useIdentifier(const QUrl& value) { identifier = value; return *this; }
   QXadesSignaturePolicyIdentifier& useDescription(const QString& value) { description = value; return *this; }
   QXadesSignaturePolicyIdentifier& useDigestAlgorithm(QCryptographicHash::Algorithm value) { digestAlgorithm = value; return *this; }
+  QXadesSignaturePolicyIdentifier& useDigestFile(const QString& filepath);
+  QXadesSignaturePolicyIdentifier& useDigestFile(QIODevice* device);
   QXadesSignaturePolicyIdentifier& useDigestValue(const QString& value) { digestValue = value; return *this; }
   QXadesSignaturePolicyIdentifier& addQualifier(const QXadesSignaturePolicyQualifier& value) { qualifiers << value; return *this; }
 
