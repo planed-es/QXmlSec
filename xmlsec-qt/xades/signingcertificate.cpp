@@ -13,13 +13,21 @@ static QString x509IssuerName(const QSslCertificate& certificate)
   return result.join(',');
 }
 
+static QString signingCertificateName(bool v2)
+{
+  QString base = "SigningCertificate";
+
+  return v2 ? (base + "V2") : base;
+}
+
 QDomElement QXadesSigningCertificate::generate(QXadesContext& context) const
 {
-  QDomElement root = context.createElement("SigningCertificate");
+  QDomElement root = context.createElement(signingCertificateName(v2));
   QDomElement certificateEl = context.createElement("Cert");
 
   certificateEl.appendChild(generateDigest(context));
-  certificateEl.appendChild(generateIssuerSerial(context));
+  if (!v2)
+    certificateEl.appendChild(generateIssuerSerial(context));
   root.appendChild(certificateEl);
   return root;
 }
