@@ -2,6 +2,7 @@
 #include <QRandomGenerator>
 #include <QTime>
 #include <QPair>
+#include <QMap>
 
 QString QXmlSignContext::tagId(const QString& tagName) const
 {

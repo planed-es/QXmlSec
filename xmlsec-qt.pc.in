@@ -3,9 +3,9 @@ exec_prefix="${prefix}"
 libdir="${exec_prefix}/lib"
 includedir="${prefix}/include"
 
-Name: @PROJECT_NAME@
+Name: @TARGET_NAME@
 Description: @CMAKE_PROJECT_DESCRIPTION@
 Version: @PROJECT_VERSION@
 Requires: xmlsec1-openssl >= 1.2.0
 Cflags: -I${includedir} -I${includedir}/xmlsec1 -I/usr/include/xmlsec1
-Libs: -L${libdir} -lxmlsec-qt -xmlsec1-openssl -lxmlsec1 -lltdl -lssl -lcrypto
+Libs: -L${libdir} -l@TARGET_NAME@ -xmlsec1-openssl -lxmlsec1 -lltdl -lssl -lcrypto

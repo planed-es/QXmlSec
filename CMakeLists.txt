@@ -14,10 +14,13 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 REQUIRED COMPONENTS Core Xml Network)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Xml Network)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Xml Network)
 find_package(PkgConfig)
 pkg_check_modules(XMLSEC REQUIRED xmlsec1-openssl>=1.0.0)
+
+set(TARGET_NAME xmlsec-qt${QT_VERSION_MAJOR})
+message("Building ${PROJECT_NAME} using Qt${QT_VERSION_MAJOR}")
 
 include_directories(${ZLIB_INCLUDE_DIRS})
 include_directories(${XMLSEC_INCLUDE_DIRS} /usr/include/xmlsec1)
@@ -27,14 +30,14 @@ file(GLOB sources xmlsec-qt/*.cpp)
 file(GLOB xades_headers xmlsec-qt/xades/*.h)
 file(GLOB xades_sources xmlsec-qt/xades/*.cpp)
 
-add_library(xmlsec-qt SHARED
+add_library(${TARGET_NAME} SHARED
   ${headers} ${xades_headers}
   ${sources} ${xades_sources}
 )
 
-target_compile_definitions(xmlsec-qt PRIVATE XMLSECQT_LIBRARY)
+target_compile_definitions(${TARGET_NAME} PRIVATE XMLSECQT_LIBRARY)
 
-target_link_libraries(xmlsec-qt PRIVATE
+target_link_libraries(${TARGET_NAME} PRIVATE
   Qt${QT_VERSION_MAJOR}::Core
   Qt${QT_VERSION_MAJOR}::Xml
   ${XMLSEC_LIBRARIES})
@@ -43,9 +46,9 @@ if (BUILD_TESTS)
 #  add_subdirectory(tests)
 endif()
 
-configure_file(xmlsec-qt.pc.in xmlsec-qt.pc @ONLY)
+configure_file(xmlsec-qt.pc.in ${TARGET_NAME}.pc @ONLY)
 
 install(FILES ${headers} DESTINATION include/xmlsec-qt)
 install(FILES ${xades_headers} DESTINATION include/xmlsec-qt/xades)
-install(TARGETS xmlsec-qt LIBRARY DESTINATION lib)
-install(FILES ${CMAKE_BINARY_DIR}/xmlsec-qt.pc DESTINATION lib/pkgconfig)
+install(TARGETS ${TARGET_NAME} LIBRARY DESTINATION lib)
+install(FILES ${CMAKE_BINARY_DIR}/${TARGET_NAME}.pc DESTINATION lib/pkgconfig)
