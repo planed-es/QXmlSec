@@ -96,7 +96,11 @@ bool QXmlSign::sign()
   {
     case XmlsecCertificate:
       keyName = sslCertificate.xmlsec.name();
-      dsigCtx->signKey = xmlSecCryptoAppKeyLoad(sslCertificate.xmlsec.filepath().toUtf8().constData(), sslCertificate.xmlsec.xmlsecFormat(), sslKeyPassphrase.constData(), NULL, NULL);
+#if XMLSEC_VERSION_MAJOR == 1 && XMLSEC_VERSION_MINOR <= 2
+      dsigCtx->signKey = xmlSecCryptoAppKeyLoad  (sslCertificate.xmlsec.filepath().toUtf8().constData(), sslCertificate.xmlsec.xmlsecFormat(), sslKeyPassphrase.constData(), NULL, NULL);
+#else
+      dsigCtx->signKey = xmlSecCryptoAppKeyLoadEx(sslCertificate.xmlsec.filepath().toUtf8().constData(), xmlSecKeyDataTypePrivate, sslCertificate.xmlsec.xmlsecFormt(), sslKeyPassphrase.constData(), NULL, NULL);
+#endif
       break ;
     case QtCertificate:
       keyName = sslCertificate.qt.subjectDisplayName();
