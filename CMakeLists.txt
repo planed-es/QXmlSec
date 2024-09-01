@@ -45,7 +45,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE
   ${XMLSEC_LIBRARIES})
 
 if (BUILD_TESTS)
-#  add_subdirectory(tests)
+  add_subdirectory(tests)
 endif()
 
 configure_file(xmlsec-qt.pc.in ${TARGET_NAME}.pc @ONLY)
