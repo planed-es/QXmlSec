@@ -19,13 +19,13 @@ bool Pkcs12XmlSignTest::prepareCertificateFile()
 
 bool Pkcs12XmlSignTest::prepareXmlDocument()
 {
-  xmlDocument.setContent(
+  xmlDocument.setContent(QByteArray(
     "<Envelope xmlns=\"urn:envelope\">\n"
     "  <Data>\n"
 	  "    Hello, World!\n"
     "  </Data>\n"
     "</Envelope>"
-  );
+  ));
   return true;
 }
 
